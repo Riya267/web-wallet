@@ -1,0 +1,110 @@
+name: Web Wallet Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      git-ref:
+        description: Git Ref (Optional)
+        required: true
+        default: 'master'
+      target-service:
+        type: choice
+        description: Target Service
+        required: true
+        default: frontend
+        options:
+          - frontend
+          - backend
+
+jobs:
+  Deploy-Production:
+    runs-on: ubuntu-latest
+    name: Deploy to ${{ github.event.inputs['target-service'] }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs['git-ref'] }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9.1.3
+
+      - name: Install Dependencies
+        run: pnpm install
+        if: ${{ github.event.inputs['target-service'] == 'frontend' }}
+      
+      - name: Copy directory
+        run: |
+          mkdir -p webwallet
+          cp -r ${{ github.workspace }}/frontend/. ${{ github.workspace }}/webwallet/
+
+      - name: Create .env File in webwallet
+        run: |
+          cd webwallet &&
+          echo "REACT_APP_BACKEND_SERVICE_BASE_URL=${{ secrets.REACT_APP_BACKEND_SERVICE_BASE_URL }}" >> .env
+          echo "REACT_APP_MNEMONIC_ENDPOINT=${{ secrets.REACT_APP_MNEMONIC_ENDPOINT }}" >> .env
+           echo "REACT_APP_WALLET_ENDPOINT=${{ secrets.REACT_APP_WALLET_ENDPOINT }}" >> .env
+          echo "NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
+        if: ${{ github.event.inputs['target-service'] == 'frontend' }}
+
+      - name: Build Frontend
+        run: cd webwallet && pnpm run build
+        if: ${{ github.event.inputs['target-service'] == 'frontend' }}
+
+      - name: Install Vercel CLI
+        run: pnpm install --global vercel@latest
+        if: ${{ github.event.inputs['target-service'] == 'frontend' }}
+
+      - name: Pull Vercel Environment Information
+        run: cd webwallet && vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        if: ${{ github.event.inputs['target-service'] == 'frontend' }}
+
+      - name: Deploy Frontend to Vercel
+        run: |
+          DEPLOY_URL=$(vercel deploy --cwd="${{ github.workspace }}/webwallet"  --prod --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }})
+        if: ${{ github.event.inputs['target-service'] == 'frontend' }}
+
+      - name: Remove old Docker images
+        run: |
+          docker images --filter=reference="*:latest*" -q | xargs -r docker rmi
+        if: ${{ github.event.inputs['target-service'] == 'backend' }}
+
+      - name: Build Docker image
+        run: |
+          docker build -t walletbackend -f ./backend/Dockerfile ./backend
+          docker tag walletbackend "${{ secrets.DOCKER_USERNAME }}/walletbackend:latest"
+        if: ${{ github.event.inputs['target-service'] == 'backend' }}
+
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        if: ${{ github.event.inputs['target-service'] == 'backend' }}
+
+      - name: Push Docker image
+        run: |
+          docker push "${{ secrets.DOCKER_USERNAME }}/walletbackend:latest"
+        if: ${{ github.event.inputs['target-service'] == 'backend' }}
+
+      - name: Deploy Backend to Render
+        run: |
+          curl -X POST \
+            https://api.render.com/deploy/${{secrets.RENDER_SECRET_KEY}}?key=${{secrets.RENDER_API_KEY}}&imgURL=docker.io/${{ secrets.DOCKER_USERNAME }}/webwalletbackend:latest
+        if: ${{ github.event.inputs['target-service'] == 'backend' }}
+
+      - name: Clean Up
+        run: npm cache clean --force
+
+      - name: Send Deployment Notification
+        run: |
+          if [ "${{ github.event.inputs['target-service'] }}" == "frontend" ]; then
+            echo "Frontend deployment to Vercel was successful"
+          else
+            echo "Backend deployment to Render was successful!"
+          fi

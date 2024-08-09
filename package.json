@@ -1,0 +1,25 @@
+{
+  "name": "webwallet",
+  "version": "1.0.0",
+  "description": "A web based wallet for crypto",
+  "scripts": {
+    "start": "pnpm --stream -r start",
+    "start:dev": "pnpm --stream -r run start:dev",
+    "clean": "rm -rf node_modules && pnpm -r run clean",
+    "lint": "eslint --fix '{backend,frontend}/src/*.{js,jsx,ts,tsx,json}'",
+    "format": "prettier --write '{backend,frontend}/**/*.{js,jsx,ts,tsx,json,css,scss}'",
+    "prepare": "if [ \"$NODE_ENV\" = \"development\" ]; then pnpm husky install; fi"
+  },
+  "keywords": [],
+  "author": "riyacec05@gmail.com",
+  "license": "MIT",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.12.0",
+    "@typescript-eslint/parser": "^7.12.0",
+    "eslint": "^9.4.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-config-standard-with-typescript": "^43.0.1",
+    "husky": "^9.0.11",
+    "prettier": "^3.3.0"
+  }
+}
