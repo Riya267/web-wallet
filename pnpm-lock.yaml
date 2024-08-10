@@ -53,6 +53,10 @@ importers:
       winston:
         specifier: ^3.13.0
         version: 3.14.1
+    devDependencies:
+      '@types/node':
+        specifier: ^16.18.97
+        version: 16.18.105
 
   frontend:
     dependencies:

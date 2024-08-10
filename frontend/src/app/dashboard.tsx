@@ -30,7 +30,7 @@ const Dashboard = () => {
     }
 
     try {
-      const response  = await axios.post(`${process.env.REACT_APP_BACKEND_SERVICE_BASE_URL}${process.env.REACT_APP_WALLET_ENDPOINT}`, { mnemonic });
+      const response  = await axios.post(`${process.env.REACT_APP_BACKEND_SERVICE_BASE_URL}${process.env.REACT_APP_WALLET_ENDPOINT}`, { mnemonic, walletIndex: wallets.length });
       const newWallet = response.data as Wallet;
 
       // Update the state with the new wallet
