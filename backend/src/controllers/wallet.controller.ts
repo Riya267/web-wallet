@@ -19,20 +19,16 @@ const createWallet = async (
     }
 
     logger.debug('[Controllers: createWallet] - Generating wallets with mnemonic:', mnemonic);
-
-    const newWallets: { blockchain: string; publicKey: string }[] = [];
-
-    for (let i = 0; i < 4; i++) {
-      const ethPath = `m/44'/60'/${i}'/0/0`;
+    let walletIndex = 1
+    let newWallets;
+      const ethPath = `m/44'/60'/${walletIndex}'/0/0`;
       const hdNode = HDNode.fromMnemonic(mnemonic).derivePath(ethPath);
 
-      newWallets.push({
+      newWallets = {
         blockchain: 'Ethereum',
         publicKey: hdNode.address,
-      });
-
-    }
-
+      };
+     walletIndex++;
     logger.info('[Controllers: createWallet] - Wallets generated successfully');
     
     res.status(httpStatus.OK).json(newWallets);

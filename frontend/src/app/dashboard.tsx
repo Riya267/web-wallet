@@ -1,11 +1,17 @@
 import { useState } from 'react';
 import axios from 'axios';
+import WalletModal from '../components/modal';
 
-const App = () => {
+export interface Wallet {
+  blockchain: string;
+  publicKey: string;
+}
+
+const Dashboard = () => {
   const [mnemonic, setMnemonic] = useState('');
-  const [wallets, setWallets] = useState<{ blockchain: string; publicKey: string }[]>([]);
+  const [wallets, setWallets] = useState<Array<Wallet>>([]);
   const [error, setError] = useState<string | null>(null);
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState<boolean>(false);
 
   const handleGenerateMnemonic = async () => {
     try {
@@ -24,8 +30,11 @@ const App = () => {
     }
 
     try {
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_SERVICE_BASE_URL}${process.env.REACT_APP_WALLET_ENDPOINT}`, { mnemonic });
-      setWallets(response.data);
+      const response  = await axios.post(`${process.env.REACT_APP_BACKEND_SERVICE_BASE_URL}${process.env.REACT_APP_WALLET_ENDPOINT}`, { mnemonic });
+      const newWallet = response.data as Wallet;
+
+      // Update the state with the new wallet
+      setWallets(prevWallets => [...prevWallets, newWallet]);
       setShowModal(true);
       setError(null);
     } catch (err) {
@@ -58,7 +67,7 @@ const App = () => {
             onClick={handleCreateWallets}
             className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition"
           >
-            Create Wallets
+            Add Wallets
           </button>
         </div>
 
@@ -68,34 +77,10 @@ const App = () => {
           </div>
         )}
       </div>
-
-      {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-gray-800 p-6 rounded-lg shadow-lg max-w-[80%]">
-            <h2 className="text-xl font-semibold text-white mb-4">Generated Wallets</h2>
-            <ul>
-              {wallets.map((wallet, index) => (
-                <li key={index} className="mb-3 p-2 border-b border-gray-700">
-                  <div className="text-gray-300">
-                    <strong>Blockchain:</strong> {wallet.blockchain}
-                  </div>
-                  <div className="text-gray-400">
-                    <strong>Public Key:</strong> {wallet.publicKey}
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={() => setShowModal(false)}
-              className="mt-4 w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+      
+      <WalletModal showModal={showModal} setShowModal={setShowModal} wallets={wallets} />
     </div>
   );
 };
 
-export default App;
+export default Dashboard;
