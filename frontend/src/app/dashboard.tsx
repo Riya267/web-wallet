@@ -11,19 +11,25 @@ const Dashboard = () => {
   const [mnemonic, setMnemonic] = useState('');
   const [wallets, setWallets] = useState<Array<Wallet>>([]);
   const [error, setError] = useState<string | null>(null);
+  const [mnemonicLoading, setMnemonicLoading] = useState(false)
+  const [walletLoading, setWalletLoading] = useState(false)
   const [showModal, setShowModal] = useState<boolean>(false);
 
   const handleGenerateMnemonic = async () => {
+    setMnemonicLoading(true)
     try {
       const response = await axios.get(`${process.env.REACT_APP_BACKEND_SERVICE_BASE_URL}${process.env.REACT_APP_MNEMONIC_ENDPOINT}`);
       setMnemonic(response.data.mnemonic);
+      setMnemonicLoading(false)
       setError(null);
     } catch (err) {
       setError('Error generating mnemonic');
     }
+    setMnemonicLoading(false)
   };
 
   const handleCreateWallets = async () => {
+    setWalletLoading(true)
     if (!mnemonic) {
       setError('Mnemonic is required to generate wallets');
       return;
@@ -33,13 +39,14 @@ const Dashboard = () => {
       const response  = await axios.post(`${process.env.REACT_APP_BACKEND_SERVICE_BASE_URL}${process.env.REACT_APP_WALLET_ENDPOINT}`, { mnemonic, walletIndex: wallets.length });
       const newWallet = response.data as Wallet;
 
-      // Update the state with the new wallet
       setWallets(prevWallets => [...prevWallets, newWallet]);
+      setWalletLoading(false)
       setShowModal(true);
       setError(null);
     } catch (err) {
       setError('Error creating wallets');
     }
+    setWalletLoading(false)
   };
 
   return (
@@ -52,7 +59,7 @@ const Dashboard = () => {
             onClick={handleGenerateMnemonic}
             className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
           >
-            Generate Mnemonic
+            {mnemonicLoading ? '...generating' : 'Generate Mnemonic' }
           </button>
           {mnemonic && (
             <div className="mt-6 p-4 border border-gray-700 rounded-lg bg-gray-900">
@@ -67,7 +74,7 @@ const Dashboard = () => {
             onClick={handleCreateWallets}
             className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition"
           >
-            Add Wallets
+            {walletLoading ? '...adding' : 'Add Wallets' }
           </button>
         </div>
 
